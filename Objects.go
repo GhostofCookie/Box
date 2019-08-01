@@ -22,7 +22,11 @@ type AccessResponse struct {
 	TokenType    string        `json:"token_type"`
 }
 
-// FileObject : A Box File object.
+// FileObject : File information describe file objects in Box, with attributes
+// like who created the file, when it was last modified, and other information.
+// The actual content of the file itself is accessible through the
+// /files/{id}/content endpoint. Italicized attributes are not returned by
+// default and must be retrieved through the fields parameter.
 type FileObject struct {
 	Type           string         `json:"type"`
 	ID             string         `json:"id"`
@@ -42,6 +46,19 @@ type FileObject struct {
 	SharedLink     SharedLink     `json:"shared_link"`
 	Parent         Parent         `json:"parent"`
 	ItemStatus     string         `json:"item_status"`
+}
+
+type FileVersionObject struct {
+	Type       string `json:"type"`
+	ID         string `json:"id"`
+	Sha1       string `json:"sha1"`
+	Name       string `json:"name"`
+	Size       int    `json:"size"`
+	CreatedAt  string `json:"created_at"`
+	ModifiedAt string `json:"modified_at"`
+	ModifiedBy User
+	TrashedAt  string `json:"trashed_at"`
+	PurgedAt   string `json:"purged_at"`
 }
 
 // FolderObject : A Box Folder object.

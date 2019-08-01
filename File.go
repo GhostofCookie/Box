@@ -8,10 +8,11 @@ import (
 	"mime/multipart"
 	"os"
 	"reflect"
+	"strings"
 	"time"
 )
 
-// GetFileInfo : Returns information about the file with 'ID' fileID.
+// GetFileInfo : Get information about a file.
 func GetFileInfo(fileID string) (*FileObject, error) {
 	RequestAccessToken()
 	response, err := BoxRequest("GET", "https://api.box.com/2.0/files/"+fileID, nil, nil)
@@ -25,7 +26,8 @@ func GetFileInfo(fileID string) (*FileObject, error) {
 	return fileObject, nil
 }
 
-// DownloadFile : Downloads a file with 'ID' fileID.
+// DownloadFile : Retrieves the actual data of the file. An optional version
+// parameter can be set to download a previous version of the file.
 func DownloadFile(fileID string, location string) error {
 	RequestAccessToken()
 	response, err := BoxRequest("GET", "https://api.box.com/2.0/files/"+fileID+"/content", nil, nil)
@@ -50,7 +52,10 @@ func DownloadFile(fileID string, location string) error {
 	return nil
 }
 
-// UploadFile : Creates an Access Token to the Box API, then uploads a given name to the specified folder.
+// UploadFile : Use the Upload API to allow users to add a new file. The user
+// can then upload a file by specifying the destination folder for the file.
+// If the user provides a file name that already exists in the destination
+// folder, the user will receive an error.
 func UploadFile(file interface{}, newName string, folderID string) (*PathCollection, error) {
 	RequestAccessToken()
 
@@ -119,6 +124,11 @@ func UploadFile(file interface{}, newName string, folderID string) (*PathCollect
 	return fileObject, nil
 }
 
+// UploadFileVersion : Uploading a new file version is performed in the same
+// way as uploading a file. This method is used to upload a new version of an
+// existing file in a user’s account.
+func UploadFileVersion(fileID string, newName string) {}
+
 type Session struct {
 	sessionID string
 	fileSize  int32
@@ -154,12 +164,37 @@ func DeleteFile(fileID string, etag string) error {
 }
 
 // CopyFile : Copy a file. The version and a new name can be optionally supplied.
-func CopyFile(fildID string, version string, name string) (*FileObject, error) {
-	return nil, nil
+func CopyFile(fileID string, folderID, version string, name string) (*FileObject, error) {
+	RequestAccessToken()
+	bodyStr := `{"parent": {"id" : ` + folderID + `}`
+	if version != "" {
+		bodyStr += `, "version" : ` + version
+	}
+	if name != "" {
+		bodyStr += `, "name" : ` + name
+	}
+	bodyStr += `}`
+	body := strings.NewReader(bodyStr)
+	headers := make(map[string]string)
+	headers["Content-Type"] = "application/x-www-form-urlencoded"
+	response, err := BoxRequest("GET", "https://api.box.com/2.0/files/"+fileID+"/copy", body, headers)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	fileObject := &FileObject{}
+	json.Unmarshal(response, &fileObject)
+
+	return fileObject, nil
 }
 
 // LockandUnlock : Sets a lock, which expires within a specific time.
 func LockandUnlock(fileID string, expiresAt time.Time, preventDownload bool) {
+
+}
+
+// GetThumbnail : Get a thumbnail image for a file.
+func GetThumbnail(fileID string, extension string, minHeight int32, minWidth int32) {
 
 }
 
@@ -175,4 +210,16 @@ func GetEmbedLink(fileID string) (*EmbeddedFile, error) {
 	json.Unmarshal(response, &fileObject)
 
 	return fileObject, nil
+}
+
+func GetFileCollaborations() {
+
+}
+
+func GetFileComments() {
+
+}
+
+func GetFileTasks() {
+
 }

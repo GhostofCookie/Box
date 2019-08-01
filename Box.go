@@ -10,14 +10,18 @@ import (
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-var accessToken string
-var configFile string
+var accessToken string = ""
+var configFile string = ""
+
+// SetConfigFile : Sets the config file to read Box info from.
+func SetConfigFile(name string) {
+	configFile = name
+}
 
 // BoxRequest : Runs an HTTP request to the box app.
 func BoxRequest(method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
@@ -88,7 +92,7 @@ func RequestAccessToken() error {
 	claims["iss"] = boxConfig.BoxAppSettings.ClientID
 	claims["sub"] = boxConfig.EnterpriseID
 	claims["box_sub_type"] = "enterprise"
-	claims["aud"] = os.Getenv("authURL")
+	claims["aud"] = "https://api.box.com/oauth2/token"
 	claims["jti"] = jti
 	claims["exp"] = time.Now().Add(time.Second * 10).Unix()
 
@@ -119,7 +123,7 @@ func RequestAccessToken() error {
 	payload.Add("client_secret", boxConfig.BoxAppSettings.ClientSecret)
 
 	// Post the request to the Box API.
-	response, err := BoxRequest("POST", os.Getenv("authURL"), bytes.NewBufferString(payload.Encode()), nil)
+	response, err := BoxRequest("POST", "https://api.box.com/oauth2/token", bytes.NewBufferString(payload.Encode()), nil)
 	if err != nil {
 		log.Println(err)
 		return err
