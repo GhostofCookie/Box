@@ -1,2 +1,2 @@
 # GoBox
-[https://travis-ci.com/GhostofCookie/GoBox.svg?branch=master]
+![build status](https://travis-ci.com/GhostofCookie/GoBox.svg?branch=master)
