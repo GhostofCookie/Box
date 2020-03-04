@@ -14,5 +14,3 @@ jobs:
       # specify any bash command here prefixed with `run: `
       - run: go get github.com/dgrijalva/jwt-go
       - run: go build
-      - run: cd Test
-      - run: go test -v
