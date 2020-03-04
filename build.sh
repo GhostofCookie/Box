@@ -1,3 +1,1 @@
-cd Test || exit
-go test
-cd ..
+go build
