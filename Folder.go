@@ -7,14 +7,15 @@ import (
 	"strings"
 )
 
-// CreateFolder : Creates a new folder under the parent folder that has 'ID' parentFolderID.
-func CreateFolder(name string, parentFolderID string) (*FolderObject, error) {
-	RequestAccessToken()
+const folderURL = "https://api.box.com/2.0/folders/"
+
+// CreateFolder creates a new folder under the parent folder that has 'ID' parentFolderID.
+func (sdk *SDK) CreateFolder(name string, parentFolderID string) (*FolderObject, error) {
 	body := strings.NewReader(`{"name":"` + name + `", "parent": {"id": "` + parentFolderID + `"}}`)
 
-	response, err := BoxRequest("POST", "https://api.box.com/2.0/folders", body, nil)
+	response, err := sdk.Request("POST", folderURL, body, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 		return nil, err
 	}
 	folderObject := &FolderObject{}
@@ -23,13 +24,12 @@ func CreateFolder(name string, parentFolderID string) (*FolderObject, error) {
 	return folderObject, nil
 }
 
-// GetFolderItems : Returns all the items contained inside the folder with 'ID' folderID.
-func GetFolderItems(folderID string, limit int, offset int) (*ItemCollection, error) {
-	RequestAccessToken()
-
-	response, err := BoxRequest("GET", "https://api.box.com/2.0/folders/"+folderID+"/items?limit="+strconv.Itoa(limit)+"&offset="+strconv.Itoa(offset), nil, nil)
+// GetFolderItems returns all the items contained inside the folder with 'ID' folderID.
+func (sdk *SDK) GetFolderItems(folderID string, limit int, offset int) (*ItemCollection, error) {
+	urlOpts := "/items?limit=" + strconv.Itoa(limit) + "&offset=" + strconv.Itoa(offset)
+	response, err := sdk.Request("GET", folderURL+folderID+urlOpts, nil, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 		return nil, err
 	}
 	items := &ItemCollection{}
@@ -38,12 +38,11 @@ func GetFolderItems(folderID string, limit int, offset int) (*ItemCollection, er
 	return items, nil
 }
 
-// DeleteFolder : Deletes the folder with 'ID' folderID.
-func DeleteFolder(folderID string) {
-	RequestAccessToken()
-	_, err := BoxRequest("DELETE", "https://api.box.com/2.0/folders/"+folderID+"?recursive=true", nil, nil)
+// DeleteFolder deletes the folder who's 'ID' matches folderID.
+func (sdk *SDK) DeleteFolder(folderID string) {
+	_, err := sdk.Request("DELETE", folderURL+folderID+"?recursive=true", nil, nil)
 	if err != nil {
-		log.Println(err)
+		log.Fatalln(err)
 		return
 	}
 }
