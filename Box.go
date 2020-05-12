@@ -11,12 +11,17 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
-// Config : Basic structure for a Box API JWT.
+var (
+	errConfig = errors.New("No BoxSDK API configuration set (try 'NewConfig' or 'NewConfigFromFile')")
+)
+
+// Config is the basic structure for a Box API JWT.
 type Config struct {
 	BoxAppSettings struct {
 		ClientID     string `json:"clientID"`
@@ -30,17 +35,42 @@ type Config struct {
 	EnterpriseID string `json:"enterpriseID"`
 }
 
-// AccessResponse : Object returned by a successful request to the Box API.
+// AccessTokenObject is a token object returned by a successful request to the Box API.
 type AccessTokenObject struct {
 	AccessToken     string `json:"access_token"`
 	ExpiresIn       int    `json:"expires_in"`
-	IssuedTokenType string `json:"issued_token_type"`
+	IssuedTokenType string `json:"issued_token_type,omitempty"`
 	RefreshToken    string `json:"refresh_token"`
 	RestrictedTo    []struct {
 		Scope  string      `json:"scope,omitempty"`
 		Object *FileObject `json:"object,omitempty`
 	} `json:"restricted_to,omitempty"`
-	TokenType string `json:"token_type"`
+	TokenType string `json:"token_type,omitempty"`
+}
+
+// httpResponse is a structure for capturing data from not OK http statuses.
+type httpResponse struct {
+	Type        string `json:"type"`
+	Status      int    `json:"status"`
+	Code        string `json:"code"`
+	ContextInfo struct {
+		Conflicts struct {
+			Type        string `json:"type"`
+			ID          string `json:"id"`
+			FileVersion struct {
+				Type string `json:"type"`
+				ID   string `json:"id"`
+				Sha1 string `json:"sha1"`
+			} `json:"file_version"`
+			SequenceID string `json:"sequence_id"`
+			Etag       string `json:"etag"`
+			Sha1       string `json:"sha1"`
+			Name       string `json:"name"`
+		} `json:"conflicts"`
+	} `json:"context_info"`
+	HelpURL   string `json:"help_url"`
+	Message   string `json:"message"`
+	RequestID string `json:"request_id"`
 }
 
 // SDK is the structure for establishing the connection to the Box API.
@@ -71,12 +101,14 @@ func (sdk *SDK) NewConfigFromFile(filename string) error {
 	}
 
 	sdk.client = &http.Client{}
-
 	return nil
 }
 
-// Request runs an HTTP request to the Box API.
-func (sdk *SDK) Request(method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
+// request runs an HTTP request to the Box API.
+func (sdk *SDK) request(method string, url string, body io.Reader, headers map[string]string) ([]byte, error) {
+	if sdk.config == nil {
+		return nil, errConfig
+	}
 
 	request, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -109,13 +141,18 @@ func (sdk *SDK) Request(method string, url string, body io.Reader, headers map[s
 	log.Println("URL    :", url)
 	log.Println("Status :", response.Status)
 
+	if response.StatusCode > http.StatusOK {
+		var status httpResponse
+		json.Unmarshal(respBytes, &status)
+		return nil, errors.New(status.Type + " " + strconv.Itoa(status.Status) + " (" + status.Code + ") " + "\"" + status.Message + "\"")
+	}
 	return respBytes, nil
 }
 
 // RequestAccessToken requests a valid access token from the Box API.
 func (sdk *SDK) RequestAccessToken() error {
 	if sdk.config == nil {
-		return errors.New("No API configuration set")
+		return errConfig
 	}
 	// Create a unique 32 character long string.
 	rBytes := make([]byte, 32)
@@ -124,6 +161,7 @@ func (sdk *SDK) RequestAccessToken() error {
 		log.Fatalln(err)
 		return err
 	}
+
 	jti := base64.URLEncoding.EncodeToString(rBytes)
 
 	// Build the header. This includes the PublicKey as the ID.
@@ -159,8 +197,7 @@ func (sdk *SDK) RequestAccessToken() error {
 	}
 
 	// Build header
-	header := make(map[string]string)
-	header["Content-Type"] = "application/x-www-form-urlencoded"
+	header := map[string]string{"Content-Type": "application/x-www-form-urlencoded"}
 
 	// Build the access token request.
 	payload := url.Values{}
@@ -170,7 +207,7 @@ func (sdk *SDK) RequestAccessToken() error {
 	payload.Add("client_secret", sdk.config.BoxAppSettings.ClientSecret)
 
 	// Post the request to the Box API.
-	response, err := sdk.Request("POST", "https://api.box.com/oauth2/token", bytes.NewBufferString(payload.Encode()), header)
+	response, err := sdk.request("POST", "https://api.box.com/oauth2/token", bytes.NewBufferString(payload.Encode()), header)
 	if err != nil {
 		log.Fatalln(err)
 		return err
@@ -182,6 +219,13 @@ func (sdk *SDK) RequestAccessToken() error {
 		log.Fatalln(err)
 		return err
 	}
+
+	go func() {
+		for range time.Tick(time.Hour) {
+			sdk.RequestAccessToken()
+		}
+	}()
+	time.Sleep(time.Nanosecond)
 
 	return nil
 }

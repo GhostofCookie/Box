@@ -1,20 +1,16 @@
 package box
 
-// FileObject : File information describe file objects in Box, with attributes
-// like who created the file, when it was last modified, and other information.
-// The actual content of the file itself is accessible through the
-// /files/{id}/content endpoint. Italicized attributes are not returned by
-// default and must be retrieved through the fields parameter.
-type FileObject struct {
-	Type           string          `json:"type,omitempty"`
-	ID             string          `json:"id,omitempty"`
+// Item is the base structure of a Box object.
+type Item struct {
+	Type           string          `json:"type"`
+	ID             string          `json:"id"`
 	FileVersion    *FileVersion    `json:"file_version,omitempty"`
 	SequenceID     string          `json:"sequence_id,omitempty"`
 	Etag           string          `json:"etag,omitempty"`
 	Sha1           string          `json:"sha1,omitempty"`
-	Name           string          `json:"name,omitempty"`
+	Name           string          `json:"name"`
 	Description    string          `json:"description,omitempty"`
-	Size           int             `json:"size,omitempty"`
+	Size           int             `json:"size"`
 	PathCollection *PathCollection `json:"path_collection,omitempty"`
 	CreatedAt      string          `json:"created_at,omitempty"`
 	ModifiedAt     string          `json:"modified_at,omitempty"`
@@ -24,6 +20,22 @@ type FileObject struct {
 	SharedLink     *SharedLink     `json:"shared_link,omitempty"`
 	Parent         *Parent         `json:"parent,omitempty"`
 	ItemStatus     string          `json:"item_status,omitempty"`
+}
+
+// FileObject : File information describe file objects in Box, with attributes
+// like who created the file, when it was last modified, and other information.
+// The actual content of the file itself is accessible through the
+// /files/{id}/content endpoint. Italicized attributes are not returned by
+// default and must be retrieved through the fields parameter.
+type FileObject struct {
+	Item
+}
+
+// FolderObject : A Box Folder object.
+type FolderObject struct {
+	Item
+	ItemCollection *ItemCollection `json:"item_collection,omitempty"`
+	Tags           []string        `json:"tags,omitempty"`
 }
 
 // FileVersion : Contains version information of a FileObject.
@@ -40,34 +52,11 @@ type FileVersion struct {
 	PurgedAt   string `json:"purged_at,omitempty"`
 }
 
-// FolderObject : A Box Folder object.
-type FolderObject struct {
-	Type              string             `json:"type,omitempty"`
-	ID                string             `json:"id,omitempty"`
-	SequenceID        string             `json:"sequence_id,omitempty"`
-	Etag              string             `json:"etag,omitempty"`
-	Name              string             `json:"name,omitempty"`
-	CreatedAt         string             `json:"created_at,omitempty"`
-	ModifiedAt        string             `json:"modified_at,omitempty"`
-	Description       string             `json:"description,omitempty"`
-	Size              int                `json:"size,omitempty"`
-	PathCollection    *PathCollection    `json:"path_collection,omitempty"`
-	CreatedBy         *User              `json:"created_by,omitempty"`
-	ModifiedBy        *User              `json:"modified_by,omitempty"`
-	OwnedBy           *User              `json:"owned_by,omitempty"`
-	SharedLink        *SharedLink        `json:"shared_link,omitempty"`
-	FolderUploadEmail *FolderUploadEmail `json:"folder_upload_email,omitempty"`
-	Parent            *Parent            `json:"parent,omitempty"`
-	ItemStatus        string             `json:"item_status,omitempty"`
-	ItemCollection    *ItemCollection    `json:"item_collection,omitempty"`
-	Tags              []string           `json:"tags,omitempty"`
-}
-
 // Entries : A more in-depth response containing more information about box objects.
 type Entries struct {
 	Type              string          `json:"type,omitempty"`
 	ID                string          `json:"id,omitempty"`
-	SequenceID        interface{}     `json:"sequence_id,omitempty"`
+	SequenceID        struct{}        `json:"sequence_id,omitempty"`
 	Etag              string          `json:"etag,omitempty"`
 	Name              string          `json:"name,omitempty"`
 	Sha1              string          `json:"sha1,omitempty"`
@@ -76,8 +65,8 @@ type Entries struct {
 	PathCollection    *PathCollection `json:"path_collection,omitempty"`
 	CreatedAt         string          `json:"created_at,omitempty"`
 	ModifiedAt        string          `json:"modified_at,omitempty"`
-	TrashedAt         interface{}     `json:"trashed_at,omitempty"`
-	PurgedAt          interface{}     `json:"purged_at,omitempty"`
+	TrashedAt         struct{}        `json:"trashed_at,omitempty"`
+	PurgedAt          struct{}        `json:"purged_at,omitempty"`
 	ContentCreatedAt  string          `json:"content_created_at,omitempty"`
 	ContentModifiedAt string          `json:"content_modified_at,omitempty"`
 	CreatedBy         *User           `json:"created_by,omitempty"`
@@ -121,10 +110,10 @@ type Permissions struct {
 // SharedLink : A shared link to a downloadable file.
 type SharedLink struct {
 	URL               string       `json:"url,omitempty"`
-	DownloadURL       interface{}  `json:"download_url,omitempty"`
-	VanityURL         interface{}  `json:"vanity_url,omitempty"`
+	DownloadURL       struct{}     `json:"download_url,omitempty"`
+	VanityURL         struct{}     `json:"vanity_url,omitempty"`
 	IsPasswordEnabled bool         `json:"is_password_enabled,omitempty"`
-	UnsharedAt        interface{}  `json:"unshared_at,omitempty"`
+	UnsharedAt        struct{}     `json:"unshared_at,omitempty"`
 	DownloadCount     int          `json:"download_count,omitempty"`
 	PreviewCount      int          `json:"preview_count,omitempty"`
 	Access            string       `json:"access,omitempty"`
@@ -139,11 +128,11 @@ type FolderUploadEmail struct {
 
 // Parent : Parent folder of a returned box object.
 type Parent struct {
-	Type       string      `json:"type,omitempty"`
-	ID         string      `json:"id,omitempty"`
-	SequenceID interface{} `json:"sequence_id,omitempty"`
-	Etag       interface{} `json:"etag,omitempty"`
-	Name       string      `json:"name,omitempty"`
+	Type       string   `json:"type,omitempty"`
+	ID         string   `json:"id,omitempty"`
+	SequenceID struct{} `json:"sequence_id,omitempty"`
+	Etag       struct{} `json:"etag,omitempty"`
+	Name       string   `json:"name,omitempty"`
 }
 
 // ItemCollection : Total count up to the limit of the number of entries in a folder, as well as the entries themselves.

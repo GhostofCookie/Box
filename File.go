@@ -3,6 +3,10 @@ package box
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
+	"image"
+	"image/jpeg"
+	"image/png"
 	"io/ioutil"
 	"log"
 	"mime/multipart"
@@ -19,9 +23,9 @@ const (
 
 // GetFileInfo : Get information about a file.
 func (sdk *SDK) GetFileInfo(fileID string) (*FileObject, error) {
-	response, err := sdk.Request("GET", fileURL+fileID, nil, nil)
+	response, err := sdk.request("GET", fileURL+fileID, nil, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return nil, err
 	}
 	fileObject := &FileObject{}
@@ -30,12 +34,87 @@ func (sdk *SDK) GetFileInfo(fileID string) (*FileObject, error) {
 	return fileObject, nil
 }
 
+// GetThumbnail gets a thumbnail image for the requested file.
+func (sdk *SDK) GetThumbnail(fileID, extension string, minHeight, minWidth int) (image.Image, error) {
+	opts := "?min_height=" + strconv.Itoa(minHeight) + "&min_width=" + strconv.Itoa(minWidth)
+	response, err := sdk.request("GET", fileURL+fileID+"/thumbnail."+extension+opts, nil, nil)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	var image []byte
+	json.Unmarshal(response, &image)
+
+	switch extension {
+	case "png":
+		return png.Decode(bytes.NewReader(image))
+	case "jpg":
+	case "jpeg":
+		return jpeg.Decode(bytes.NewReader(image))
+	}
+	return nil, nil
+}
+
+// CopyFile copies a file. The version and a new name can be optionally supplied.
+func (sdk *SDK) CopyFile(fileID, folderID, name, version string) (*FileObject, error) {
+	body := map[string]interface{}{"parent": map[string]string{"id": folderID}}
+	if name != "" {
+		body["name"] = name
+	}
+	if version != "" {
+		body["version"] = version
+	}
+	payload, err := json.Marshal(body)
+
+	headers := map[string]string{"Content-Type": "application/json"}
+	response, err := sdk.request("POST", fileURL+fileID+"/copy", bytes.NewBufferString(string(payload)), headers)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	fileObject := &FileObject{}
+	json.Unmarshal(response, &fileObject)
+
+	return fileObject, nil
+}
+
+// GetEmbedLink returns information about the file with 'ID' fileID.
+func (sdk *SDK) GetEmbedLink(fileID string) (*EmbeddedFile, error) {
+	sdk.RequestAccessToken()
+	response, err := sdk.request("GET", fileURL+fileID+"?fields=expiring_embed_link", nil, nil)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	fileObject := &EmbeddedFile{}
+	json.Unmarshal(response, &fileObject)
+
+	return fileObject, nil
+}
+
+// UpdateFile updates the file with a new name and content.
+func (sdk *SDK) UpdateFile(fileID, newFilename string) error {
+	return errors.New("No implementation for (SDK)UpdateFile()")
+}
+
+// DeleteFile deletes a file in a specific folder with an 'ID' matching fileID.
+func (sdk *SDK) DeleteFile(fileID, etag string) error {
+	headers := make(map[string]string)
+	headers["If-Match"] = etag
+	_, err := sdk.request("DELETE", fileURL+fileID, nil, headers)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+	return nil
+}
+
 // DownloadFile : Retrieves the actual data of the file. An optional version
 // parameter can be set to download a previous version of the file.
-func (sdk *SDK) DownloadFile(fileID string, location string) error {
-	response, err := sdk.Request("GET", fileURL+fileID+"/content", nil, nil)
+func (sdk *SDK) DownloadFile(fileID, location string) error {
+	response, err := sdk.request("GET", fileURL+fileID+"/content", nil, nil)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return err
 	}
 
@@ -63,7 +142,7 @@ func (sdk *SDK) DownloadFile(fileID string, location string) error {
 // can then upload a file by specifying the destination folder for the file.
 // If the user provides a file name that already exists in the destination
 // folder, the user will receive an error.
-func (sdk *SDK) UploadFile(inFile interface{}, newFilename string, folderID string) (*PathCollection, error) {
+func (sdk *SDK) UploadFile(inFile interface{}, newFilename, folderID string) (*PathCollection, error) {
 	fileInputType := reflect.TypeOf(inFile)
 
 	var filename string
@@ -122,92 +201,31 @@ func (sdk *SDK) UploadFile(inFile interface{}, newFilename string, folderID stri
 		return nil, err
 	}
 
-	headers := make(map[string]string)
-	headers["Content-Type"] = writer.FormDataContentType()
-	headers["Content-Length"] = string(body.Len())
+	headers := map[string]string{
+		"Content-Type":   writer.FormDataContentType(),
+		"Content-Length": string(body.Len()),
+	}
 
-	response, err := sdk.Request("POST", uploadURL, body, headers)
+	response, err := sdk.request("POST", uploadURL, body, headers)
 	if err != nil {
-		log.Fatalln(err)
+		log.Println(err)
 		return nil, err
 	}
 
 	pathCollection := &PathCollection{}
 	json.Unmarshal(response, &pathCollection)
 
-	return fileObject, nil
+	return pathCollection, nil
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// FILE VERSION
+///////////////////////////////////////////////////////////////////////////////
 
 // UploadFileVersion : Uploading a new file version is performed in the same
 // way as uploading a file. This method is used to upload a new version of an
 // existing file in a user’s account.
-func (sdk *SDK) UploadFileVersion(fileID string, newName string) {}
-
-// DeleteFile : Deletes a file in a specific folder with 'ID" fileID.
-func (sdk *SDK) DeleteFile(fileID string, etag string) error {
-	headers := make(map[string]string)
-	headers["If-Match"] = etag
-	_, err := sdk.Request("DELETE", fileURL+fileID, nil, headers)
-	if err != nil {
-		log.Fatalln(err)
-		return err
-	}
-	return nil
-}
-
-// CopyFile : Copy a file. The version and a new name can be optionally supplied.
-func (sdk *SDK) CopyFile(fileID string, folderID, version string, name string) (*FileObject, error) {
-	bodyStr := `{"parent": {"id" : ` + folderID + `}`
-	if version != "" {
-		bodyStr += `, "version" : ` + version
-	}
-	if name != "" {
-		bodyStr += `, "name" : ` + name
-	}
-	bodyStr += `}`
-	body := strings.NewReader(bodyStr)
-	headers := make(map[string]string)
-	headers["Content-Type"] = "application/x-www-form-urlencoded"
-	response, err := sdk.Request("GET", fileURL+fileID+"/copy", body, headers)
-	if err != nil {
-		log.Fatalln(err)
-		return nil, err
-	}
-	fileObject := &FileObject{}
-	json.Unmarshal(response, &fileObject)
-
-	return fileObject, nil
-}
-
-// GetThumbnail gets a thumbnail image for the requested file.
-func (sdk *SDK) GetThumbnail(fileID string, extension string, minHeight int, minWidth int) (interface{}, error) {
-	opts := "?min_height=" + strconv.Itoa(minHeight) + "min_width=" + strconv.Itoa(minWidth)
-	response, err := sdk.Request("GET", fileURL+fileID+"/thumbnail."+extension+opts, nil, nil)
-	if err != nil {
-		log.Fatalln(err)
-		return nil, err
-	}
-	var image interface{}
-	json.Unmarshal(response, &image)
-
-	log.Println(image)
-
-	return image, nil
-}
-
-// GetEmbedLink : Returns information about the file with 'ID' fileID.
-func (sdk *SDK) GetEmbedLink(fileID string) (*EmbeddedFile, error) {
-	sdk.RequestAccessToken()
-	response, err := sdk.Request("GET", fileURL+fileID+"?fields=expiring_embed_link", nil, nil)
-	if err != nil {
-		log.Fatalln(err)
-		return nil, err
-	}
-	fileObject := &EmbeddedFile{}
-	json.Unmarshal(response, &fileObject)
-
-	return fileObject, nil
-}
+func (sdk *SDK) UploadFileVersion(fileID, newName string) {}
 
 ///////////////////////////////////////////////////////////////////////////////
 // CHUNK FILE
