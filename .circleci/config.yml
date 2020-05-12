@@ -1,17 +1,41 @@
 # Golang CircleCI 2.0 configuration file
 #
 # Check https://circleci.com/docs/2.0/language-go/ for more details
-version: 2
+version: 2.1
 jobs:
   build:
     docker:
       - image: circleci/golang:1.9
-
     working_directory: /go/src/github.com/GhostofCookie/GoBox
     steps:
       - checkout
+      - run: 
+          name: "Go Get Dependencies"
+          command: go get github.com/dgrijalva/jwt-go
+      - run: 
+          name: "Build SDK"
+          command: go build
+  test:
+    docker:
+      - image: circleci/golang:1.9
+    environment:
+      PRIVATE_KEY: <key>
+    working_directory: /go/src/github.com/GhostofCookie/GoBox
+    steps:
+      - checkout
+      - run: 
+          name: "Run Tests"
+          command: |
+            PRIVATE_KEY=`echo $PRIVATE_KEY_ENC | base64 -d`
+            go test -v -race -coverprofile=coverage.txt -covermode=atomic
+      - store_test_results:
+          path: ./
 
-      # specify any bash command here prefixed with `run: `
-      - run: export PRIVATE_KEY=$(echo $PRIVATE_KEY_ENC | base64 -d)
-      - run: go get github.com/dgrijalva/jwt-go
-      - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic
+workflows:
+  version: 2.1
+  build_and_test:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
