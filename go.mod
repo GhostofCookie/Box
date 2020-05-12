@@ -1,9 +1,8 @@
-module github.com/GhostofCookie/GoBox
+module github.com/ghostofcookie/gobox
 
-go 1.12
+go 1.13
 
 require (
-	github.com/GhostofCookie/Box v0.0.0-20190819182020-ca5f6aaa4fc6
+	github.com/GhostofCookie/GoBox v0.0.0-20200304190019-58a4f98510b7 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	golang.org/x/oauth2 v0.0.0-20200107190931-bf48bf16ab8d
 )

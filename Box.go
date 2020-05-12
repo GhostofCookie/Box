@@ -23,16 +23,22 @@ var (
 
 // Config is the basic structure for a Box API JWT.
 type Config struct {
-	BoxAppSettings struct {
-		ClientID     string `json:"clientID"`
-		ClientSecret string `json:"clientSecret"`
-		AppAuth      struct {
-			PublicKeyID string `json:"publicKeyID"`
-			PrivateKey  string `json:"privateKey"`
-			Passphrase  string `json:"passphrase"`
-		} `json:"appAuth"`
-	} `json:"boxAppSettings"`
-	EnterpriseID string `json:"enterpriseID"`
+	BoxAppSettings AppSettings `json:"boxAppSettings"`
+	EnterpriseID   string      `json:"enterpriseID"`
+}
+
+// AppSettings is the structure of the configuration information.
+type AppSettings struct {
+	ClientID     string  `json:"clientID"`
+	ClientSecret string  `json:"clientSecret"`
+	AppAuth      AppAuth `json:"appAuth"`
+}
+
+// AppAuth is the authentication details for the configuration.
+type AppAuth struct {
+	PublicKeyID string `json:"publicKeyID"`
+	PrivateKey  string `json:"privateKey"`
+	Passphrase  string `json:"passphrase"`
 }
 
 // AccessTokenObject is a token object returned by a successful request to the Box API.
@@ -141,7 +147,7 @@ func (sdk *SDK) request(method string, url string, body io.Reader, headers map[s
 	log.Println("URL    :", url)
 	log.Println("Status :", response.Status)
 
-	if response.StatusCode > http.StatusOK {
+	if response.StatusCode >= http.StatusBadRequest {
 		var status httpResponse
 		json.Unmarshal(respBytes, &status)
 		return nil, errors.New(status.Type + " " + strconv.Itoa(status.Status) + " (" + status.Code + ") " + "\"" + status.Message + "\"")

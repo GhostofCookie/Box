@@ -52,6 +52,7 @@ func (sdk *SDK) CreateFolder(name string, parentFolderID string) (*FolderObject,
 	return folderObject, nil
 }
 
+// CopyFolder copies a speified folder to a specified parent folder.
 func (sdk *SDK) CopyFolder(folderID string, parentFolderID string, newName string) (*FolderObject, error) {
 	body := map[string]interface{}{"parent": map[string]string{"id": parentFolderID}}
 	if newName != "" {
@@ -71,6 +72,7 @@ func (sdk *SDK) CopyFolder(folderID string, parentFolderID string, newName strin
 	return folderObject, nil
 }
 
+// UpdateFolder updates a folder object.
 func (sdk *SDK) UpdateFolder() {}
 
 // DeleteFolder deletes the folder who's 'ID' matches folderID.

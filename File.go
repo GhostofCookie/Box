@@ -228,26 +228,34 @@ func (sdk *SDK) UploadFile(inFile interface{}, newFilename, folderID string) (*P
 func (sdk *SDK) UploadFileVersion(fileID, newName string) {}
 
 ///////////////////////////////////////////////////////////////////////////////
-// CHUNK FILE
+// UPLOAD (CUNKED)
 ///////////////////////////////////////////////////////////////////////////////
 
+// Session TODO: Add definition
 type Session struct {
 	sessionID string
 	fileSize  int32
 }
 
+// NewFile TODO: Add definition
 func (s *Session) NewFile(folderID string, fileSize int32, fileName string) {}
 
+// NewVersion TODO: Add definition
 func (s *Session) NewVersion(folderID string, fileSize int32, fileName string) {}
 
+// UploadPart TODO: Add definition
 func (s *Session) UploadPart() {}
 
+// ListParts TODO: Add definition
 func (s *Session) ListParts(offset int, limit int) {}
 
+// CommitUpload TODO: Add definition
 func (s *Session) CommitUpload(partID string, offset int, size int32) {}
 
+// Abort TODO: Add definition
 func (s *Session) Abort() {}
 
+// PreflightCheck TODO: Add definition
 func PreflightCheck(name string, parentID string, size int32) bool {
 	return true
 }
