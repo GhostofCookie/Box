@@ -5,14 +5,6 @@ import (
 )
 
 func TestGetFolderInfo(t *testing.T) {
-
-	setup := func() *SDK {
-		sdk := new(SDK)
-		sdk.NewConfigFromFile("config.json")
-
-		return sdk
-	}
-
 	t.Run("TestInvalidConfig", func(t *testing.T) {
 		sdk := new(SDK)
 		_, err := sdk.GetFolderInfo("0")
