@@ -12,5 +12,6 @@ jobs:
       - checkout
 
       # specify any bash command here prefixed with `run: `
+      - run: export PRIVATE_KEY=$(echo $PRIVATE_KEY_ENC | base64 -d)
       - run: go get github.com/dgrijalva/jwt-go
       - run: go test -v -race -coverprofile=coverage.txt -covermode=atomic
