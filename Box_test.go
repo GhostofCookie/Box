@@ -1,7 +1,6 @@
 package box
 
 import (
-	"io/ioutil"
 	"log"
 	"os"
 	"testing"
@@ -11,7 +10,7 @@ import (
 var setup func() *SDK
 
 func TestMain(m *testing.M) {
-	log.SetOutput(ioutil.Discard)
+	log.SetOutput(os.Stdout)
 
 	setup = func() *SDK {
 		sdk := new(SDK)
