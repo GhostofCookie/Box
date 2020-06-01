@@ -1,4 +1,5 @@
-github.com/GhostofCookie/Box v0.0.0-20190819182020-ca5f6aaa4fc6 h1:ilsS2kBNrbxIa+TR6KvlMUDfonW7GpbnvbICvu4jff4=
 github.com/GhostofCookie/Box v0.0.0-20190819182020-ca5f6aaa4fc6/go.mod h1:Eo+W6I6oDle09IMxzJOTNFSfwQExwSWrRyyP7CIZLx8=
+github.com/GhostofCookie/GoBox v0.0.0-20200304190019-58a4f98510b7 h1:stb0enfzjK+Wh9nS9fCt3SzHeI0VQzmXJcn78Yo9K08=
+github.com/GhostofCookie/GoBox v0.0.0-20200304190019-58a4f98510b7/go.mod h1:01febrpYjmPBXSvBJvys51CbgpkICM15esJIIoyPxqk=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=

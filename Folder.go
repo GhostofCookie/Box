@@ -1,33 +1,32 @@
 package box
 
 import (
+	"bytes"
 	"encoding/json"
 	"log"
 	"strconv"
 	"strings"
 )
 
-// CreateFolder : Creates a new folder under the parent folder that has 'ID' parentFolderID.
-func CreateFolder(name string, parentFolderID string) (*FolderObject, error) {
-	RequestAccessToken()
-	body := strings.NewReader(`{"name":"` + name + `", "parent": {"id": "` + parentFolderID + `"}}`)
+const folderURL = "https://api.box.com/2.0/folders/"
 
-	response, err := BoxRequest("POST", "https://api.box.com/2.0/folders", body, nil)
+// GetFolderInfo gets the information for the requested folder ID
+func (sdk *SDK) GetFolderInfo(folderID string) (*FolderObject, error) {
+	response, err := sdk.request("GET", folderURL+folderID, nil, nil)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	folderObject := &FolderObject{}
-	json.Unmarshal(response, &folderObject)
+	folder := &FolderObject{}
+	json.Unmarshal(response, &folder)
 
-	return folderObject, nil
+	return folder, nil
 }
 
-// GetFolderItems : Returns all the items contained inside the folder with 'ID' folderID.
-func GetFolderItems(folderID string, limit int, offset int) (*ItemCollection, error) {
-	RequestAccessToken()
-
-	response, err := BoxRequest("GET", "https://api.box.com/2.0/folders/"+folderID+"/items?limit="+strconv.Itoa(limit)+"&offset="+strconv.Itoa(offset), nil, nil)
+// ListItemsInFolder returns all the items contained inside the folder with 'ID' folderID.
+func (sdk *SDK) ListItemsInFolder(folderID string, limit int, offset int) (*ItemCollection, error) {
+	urlOpts := "/items?limit=" + strconv.Itoa(limit) + "&offset=" + strconv.Itoa(offset)
+	response, err := sdk.request("GET", folderURL+folderID+urlOpts, nil, nil)
 	if err != nil {
 		log.Println(err)
 		return nil, err
@@ -38,10 +37,47 @@ func GetFolderItems(folderID string, limit int, offset int) (*ItemCollection, er
 	return items, nil
 }
 
-// DeleteFolder : Deletes the folder with 'ID' folderID.
-func DeleteFolder(folderID string) {
-	RequestAccessToken()
-	_, err := BoxRequest("DELETE", "https://api.box.com/2.0/folders/"+folderID+"?recursive=true", nil, nil)
+// CreateFolder creates a new folder under the parent folder that has 'ID' parentFolderID.
+func (sdk *SDK) CreateFolder(name string, parentFolderID string) (*FolderObject, error) {
+	body := strings.NewReader(`{"name":"` + name + `", "parent": {"id": "` + parentFolderID + `"}}`)
+
+	response, err := sdk.request("POST", folderURL, body, nil)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	folderObject := &FolderObject{}
+	json.Unmarshal(response, &folderObject)
+
+	return folderObject, nil
+}
+
+// CopyFolder copies a speified folder to a specified parent folder.
+func (sdk *SDK) CopyFolder(folderID string, parentFolderID string, newName string) (*FolderObject, error) {
+	body := map[string]interface{}{"parent": map[string]string{"id": parentFolderID}}
+	if newName != "" {
+		body["name"] = newName
+	}
+	payload, err := json.Marshal(body)
+
+	headers := map[string]string{"Content-Type": "application/json"}
+	response, err := sdk.request("POST", folderURL+folderID+"/copy", bytes.NewBufferString(string(payload)), headers)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	folderObject := &FolderObject{}
+	json.Unmarshal(response, &folderObject)
+
+	return folderObject, nil
+}
+
+// UpdateFolder updates a folder object.
+func (sdk *SDK) UpdateFolder() {}
+
+// DeleteFolder deletes the folder who's 'ID' matches folderID.
+func (sdk *SDK) DeleteFolder(folderID string) {
+	_, err := sdk.request("DELETE", folderURL+folderID+"?recursive=true", nil, nil)
 	if err != nil {
 		log.Println(err)
 		return
